@@ -39,7 +39,7 @@ typedef struct {
   uint32_t height;
   size_t buffer_count;
   camera_buffer_t* buffers;
-  camera_buffer_t head;
+  int headIndex;
   camera_context_t context;
 } camera_t;
 

@@ -25,7 +25,7 @@ namespace {
     static NAN_METHOD(Stop);
     static NAN_METHOD(Capture);
     static NAN_METHOD(FrameRaw);
-    static NAN_METHOD(FrameYUYVToRGB);
+//    static NAN_METHOD(FrameYUYVToRGB);
     static NAN_METHOD(ConfigGet);
     static NAN_METHOD(ConfigSet);
     static NAN_METHOD(ControlGet);
@@ -327,15 +327,32 @@ namespace {
 
   NAN_METHOD(Camera::FrameRaw) {
     const auto camera = Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera;
-    const auto size = camera->head.length;
-    auto data = new uint8_t[size];
-    std::copy(camera->head.start, camera->head.start + size, data);
-    const auto flag = v8::ArrayBufferCreationMode::kInternalized;
-    auto buf = v8::ArrayBuffer::New(info.GetIsolate(), data, size, flag);
-    auto array = v8::Uint8Array::New(buf, 0, size);
-    info.GetReturnValue().Set(array);
+    if (camera->headIndex < 0) {
+      Nan::ThrowTypeError("No frame available");
+      return;
+    }
+    camera_buffer_t& head = camera->buffers[camera->headIndex];
+    const auto size = head.length;
+
+    if (info.Length() != 1) {
+      Nan::ThrowError("Insufficient number of arguments provided");
+      return;
+    }
+
+    if (!info[0]->IsUint8Array()) {
+      Nan::ThrowError("Argument 0 is not an Uint8Array");
+      return;
+    }
+    v8::Local<v8::Uint8Array> destBuffer = info[0].As<v8::Uint8Array>();
+
+    auto destBufferLength = destBuffer->ByteLength();
+    v8::ArrayBuffer::Contents contents = destBuffer->Buffer()->GetContents();
+    auto destBufferPtr = static_cast<uint8_t*>(contents.Data()) + destBuffer->ByteOffset();
+
+    std::copy(head.start, head.start + std::min(destBufferLength, size), destBufferPtr);
   }
-  
+
+ /*
   NAN_METHOD(Camera::FrameYUYVToRGB) {
     // TBD: check the current format as YUYV
     const auto camera = Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera;
@@ -346,7 +363,7 @@ namespace {
     auto array = v8::Uint8Array::New(buf, 0, size);
     info.GetReturnValue().Set(array);
   }
-  
+  */
   
   NAN_METHOD(Camera::ConfigGet) {
     const auto camera = Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera;
@@ -433,7 +450,7 @@ namespace {
     Nan::SetPrototypeMethod(ctor, "capture", Capture);
     Nan::SetPrototypeMethod(ctor, "frameRaw", FrameRaw);
     Nan::SetPrototypeMethod(ctor, "toYUYV", FrameRaw);
-    Nan::SetPrototypeMethod(ctor, "toRGB", FrameYUYVToRGB);
+//    Nan::SetPrototypeMethod(ctor, "toRGB", FrameYUYVToRGB);
     Nan::SetPrototypeMethod(ctor, "configGet", ConfigGet);
     Nan::SetPrototypeMethod(ctor, "configSet", ConfigSet);
     Nan::SetPrototypeMethod(ctor, "controlGet", ControlGet);

@@ -59,8 +59,7 @@ camera_t* camera_open(const char * device)
   camera->height = 0;
   camera->buffer_count = 0;
   camera->buffers = NULL;
-  camera->head.length = 0;
-  camera->head.start = NULL;
+  camera->headIndex = -1;
   camera->context.pointer = NULL;
   camera->context.log = &log_stderr;
   return camera;
@@ -133,16 +132,13 @@ static bool camera_buffer_prepare(camera_t* camera)
       return error(camera, "mmap");
     }
   }
-  camera->head.start = calloc(buf_max, sizeof (uint8_t));
   return true;
 }
 
 static void camera_buffer_finish(camera_t* camera)
 {
   free_buffers(camera, camera->buffer_count);
-  free(camera->head.start);
-  camera->head.length = 0;
-  camera->head.start = NULL;
+  camera->headIndex = -1;
 }
 
 static bool camera_load_settings(camera_t* camera)
@@ -227,10 +223,16 @@ bool camera_capture(camera_t* camera)
   memset(&buf, 0, sizeof buf);
   buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   buf.memory = V4L2_MEMORY_MMAP;
+
+
+  if (camera->headIndex >= 0) {
+    buf.index = camera->headIndex;
+    camera->headIndex = -1;
+    if (xioctl(camera->fd, VIDIOC_QBUF, &buf) == -1) return false;
+  }
+
   if (xioctl(camera->fd, VIDIOC_DQBUF, &buf) == -1) return false;
-  memcpy(camera->head.start, camera->buffers[buf.index].start, buf.bytesused);
-  camera->head.length = buf.bytesused;
-  if (xioctl(camera->fd, VIDIOC_QBUF, &buf) == -1) return false;
+  camera->headIndex = buf.index;
   return true;
 }
 
@@ -405,6 +407,7 @@ camera_formats_t*  camera_formats_new(const camera_t* camera)
             //       frmival.stepwise.max.denominator,
             //       frmival.stepwise.max.numerator);
             // TBD: when stepwize
+            break;
           }
         }
       } else {
