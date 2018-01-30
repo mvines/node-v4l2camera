@@ -215,6 +215,22 @@ bool camera_close(camera_t* camera)
   return true;
 }
 
+bool camera_releaseHead(camera_t* camera)
+{
+  if (camera->headIndex >= 0) {
+    struct v4l2_buffer buf;
+    memset(&buf, 0, sizeof buf);
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+    buf.index = camera->headIndex;
+    camera->headIndex = -1;
+    if (xioctl(camera->fd, VIDIOC_QBUF, &buf) == -1) {
+      printf("Unable to VIDIOC_QBUF\n");
+      return false;
+    }
+  }
+  return true;
+}
 
 //[[capturing]
 bool camera_capture(camera_t* camera)
@@ -224,15 +240,7 @@ bool camera_capture(camera_t* camera)
   buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   buf.memory = V4L2_MEMORY_MMAP;
 
-
-  if (camera->headIndex >= 0) {
-    buf.index = camera->headIndex;
-    camera->headIndex = -1;
-    if (xioctl(camera->fd, VIDIOC_QBUF, &buf) == -1) {
-      printf("Unable to VIDIOC_QBUF\n");
-      return false;
-    }
-  }
+  camera_releaseHead(camera);
 
   if (xioctl(camera->fd, VIDIOC_DQBUF, &buf) == -1) {
     printf("Unable to VIDIOC_DQBUF\n");

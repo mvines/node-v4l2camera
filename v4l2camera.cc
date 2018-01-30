@@ -365,6 +365,7 @@ namespace {
     auto destBufferPtr = static_cast<uint8_t*>(contents.Data()) + destBuffer->ByteOffset();
 
     std::copy(head.start, head.start + std::min(destBufferLength, size), destBufferPtr);
+    camera_releaseHead(camera);
   }
 
  /*
@@ -465,7 +466,7 @@ namespace {
     Nan::SetPrototypeMethod(ctor, "capture", Capture);
     Nan::SetPrototypeMethod(ctor, "captureSync", CaptureSync);
     Nan::SetPrototypeMethod(ctor, "frameRaw", FrameRaw);
-    Nan::SetPrototypeMethod(ctor, "toYUYV", FrameRaw);
+//    Nan::SetPrototypeMethod(ctor, "toYUYV", FrameRaw);
 //    Nan::SetPrototypeMethod(ctor, "toRGB", FrameYUYVToRGB);
     Nan::SetPrototypeMethod(ctor, "configGet", ConfigGet);
     Nan::SetPrototypeMethod(ctor, "configSet", ConfigSet);

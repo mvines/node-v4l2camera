@@ -49,6 +49,7 @@ bool camera_stop(camera_t* camera);
 bool camera_close(camera_t* camera);
 
 bool camera_capture(camera_t* camera);
+bool camera_releaseHead(camera_t* camera);
 uint8_t* yuyv2rgb(const uint8_t* yuyv, uint32_t width, uint32_t height);
 
 
