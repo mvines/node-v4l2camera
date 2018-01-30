@@ -2,6 +2,7 @@
 
 #include <nan.h>
 #include <errno.h>
+#include <poll.h>
 
 #include <memory>
 #include <sstream>
@@ -24,6 +25,7 @@ namespace {
     static NAN_METHOD(Start);
     static NAN_METHOD(Stop);
     static NAN_METHOD(Capture);
+    static NAN_METHOD(CaptureSync);
     static NAN_METHOD(FrameRaw);
 //    static NAN_METHOD(FrameYUYVToRGB);
     static NAN_METHOD(ConfigGet);
@@ -324,6 +326,19 @@ namespace {
     Watch(info, CaptureCB);
   }
 
+  NAN_METHOD(Camera::CaptureSync) {
+    const auto camera = Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera;
+    struct pollfd pollfd = {
+      .fd = camera->fd,
+      .events = POLLIN,
+      .revents = 0,
+    };
+    (void) poll(&pollfd, 1, 2000);
+    if (!camera_capture(camera)) {
+      Nan::ThrowTypeError("Unable to capture frame");
+      return;
+    }
+  }
 
   NAN_METHOD(Camera::FrameRaw) {
     const auto camera = Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera;
@@ -448,6 +463,7 @@ namespace {
     Nan::SetPrototypeMethod(ctor, "start", Start);
     Nan::SetPrototypeMethod(ctor, "stop", Stop);
     Nan::SetPrototypeMethod(ctor, "capture", Capture);
+    Nan::SetPrototypeMethod(ctor, "captureSync", CaptureSync);
     Nan::SetPrototypeMethod(ctor, "frameRaw", FrameRaw);
     Nan::SetPrototypeMethod(ctor, "toYUYV", FrameRaw);
 //    Nan::SetPrototypeMethod(ctor, "toRGB", FrameYUYVToRGB);

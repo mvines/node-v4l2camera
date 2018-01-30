@@ -228,10 +228,16 @@ bool camera_capture(camera_t* camera)
   if (camera->headIndex >= 0) {
     buf.index = camera->headIndex;
     camera->headIndex = -1;
-    if (xioctl(camera->fd, VIDIOC_QBUF, &buf) == -1) return false;
+    if (xioctl(camera->fd, VIDIOC_QBUF, &buf) == -1) {
+      printf("Unable to VIDIOC_QBUF\n");
+      return false;
+    }
   }
 
-  if (xioctl(camera->fd, VIDIOC_DQBUF, &buf) == -1) return false;
+  if (xioctl(camera->fd, VIDIOC_DQBUF, &buf) == -1) {
+    printf("Unable to VIDIOC_DQBUF\n");
+    return false;
+  }
   camera->headIndex = buf.index;
   return true;
 }
