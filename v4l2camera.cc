@@ -24,6 +24,7 @@ namespace {
     static NAN_METHOD(New);
     static NAN_METHOD(Start);
     static NAN_METHOD(Stop);
+    static NAN_METHOD(Close);
     static NAN_METHOD(Capture);
     static NAN_METHOD(CaptureSync);
     static NAN_METHOD(FrameRaw);
@@ -310,6 +311,13 @@ namespace {
     }
     Watch(info, StopCB);
   }
+  NAN_METHOD(Camera::Close) {
+    auto camera = Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera;
+    auto ctx = static_cast<LogContext*>(camera->context.pointer);
+    camera_close(camera);
+    delete ctx;
+    Nan::ObjectWrap::Unwrap<Camera>(info.Holder())->camera = nullptr;
+  }
   
   void Camera::CaptureCB(uv_poll_t* handle, int /*status*/, int /*events*/) {
     auto callCallback = [](CallbackData* data) -> void {
@@ -463,6 +471,7 @@ namespace {
     
     Nan::SetPrototypeMethod(ctor, "start", Start);
     Nan::SetPrototypeMethod(ctor, "stop", Stop);
+    Nan::SetPrototypeMethod(ctor, "close", Close);
     Nan::SetPrototypeMethod(ctor, "capture", Capture);
     Nan::SetPrototypeMethod(ctor, "captureSync", CaptureSync);
     Nan::SetPrototypeMethod(ctor, "frameRaw", FrameRaw);
